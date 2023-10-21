@@ -7,8 +7,10 @@ export class App {
     _mongoSingleton:MongoSingleton
     constructor(_c:IController[]){
         this._kernel = new Kernel()
-        this._mongoSingleton = new MongoSingleton()
+        this.initEnvironment()
         this.initController(_c)
+        
+        this._mongoSingleton = new MongoSingleton()
         this.connectStorage()
     }
     private initController(_c:IController[]){
@@ -18,6 +20,9 @@ export class App {
     }
     private connectStorage(){
         this._mongoSingleton.connect()
+    }
+    private initEnvironment(){
+        this._kernel.initEnvironment()
     }
     listen(){
         this._kernel.appService()

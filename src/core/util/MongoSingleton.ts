@@ -2,8 +2,7 @@ import mongoose from 'mongoose';
 export class MongoSingleton {
     _dbUrl:string
 	constructor() {
-      this._dbUrl =
-				"mongodb+srv://public:20031015@test-crud.utmjs38.mongodb.net/sapa_semua?retryWrites=true&w=majority"
+      this._dbUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/sapa_semua';
     }
 	connect() {
 		// mongoose.set('debug', true);
@@ -11,7 +10,7 @@ export class MongoSingleton {
 			.connect(this._dbUrl, {
 				// useNewUrlParser: true,
 			})
-			.then(() => console.log(`Connected to Database.Use  Default Environment`))
+			.then(() => console.log(`Connected to Database. Use Default Environment`))
 			.catch((err) => {
 				console.log(`something wrong ${err}`);
 			});
