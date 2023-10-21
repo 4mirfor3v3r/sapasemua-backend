@@ -1,9 +1,9 @@
 export class BaseResponse<T> {
 	status: string;
 	msg: string;
-	response?: T;
+	response?: T|null;
 
-	constructor(status: string, message: string, result?: T) {
+	constructor(status: string, message: string, result: T|null = null) {
 		this.status = status;
 		this.msg = message;
 		this.response = result;

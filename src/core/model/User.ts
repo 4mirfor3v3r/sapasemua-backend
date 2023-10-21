@@ -5,6 +5,8 @@ export interface IUser {
 	email: string;
 	password: string;
 	avatar?: string;
+	domicile?: string;
+	bio	?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -14,6 +16,8 @@ const schema = new mongoose.Schema({
 	email: { type: String, required: true },
 	password: { type: String, required: true },
 	avatar: { type: String, required: false,default: null},
+	domicile: { type: String, required: false,default: null },
+	bio: { type: String, required: false,default: null },
 	createdAt: { type: Date, default: Date.now },
 	updatedAt: { type: Date, default: Date.now },
 });

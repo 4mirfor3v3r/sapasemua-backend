@@ -7,6 +7,9 @@ export class AppUse {
 	}
 	private setup() {
 		this.app.use(bodyParser.urlencoded({ extended: true }));
+		this.app.use(bodyParser.raw());
+		this.app.use(bodyParser.json());
+		this.app.use(bodyParser.text());
 		this.app.use(
 			fileUpload({
 				limits:{fileSize:10000000},

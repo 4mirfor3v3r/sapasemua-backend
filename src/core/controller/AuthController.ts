@@ -15,6 +15,8 @@ export class AuthController implements IController{
     initRouter(){
         this.router.get(`${this.path}/ping`, this.ping);
 		this.router.post(`${this.path}/login`, this.login);
+        this.router.post(`${this.path}/register`, this.register);
+        this.router.get(`${this.path}/me`, this.me);
     }
 
     private ping = (req: express.Request, res: express.Response) => {
@@ -31,5 +33,29 @@ export class AuthController implements IController{
 		} catch (err) {
 			res.json(err);
 		}
+    }
+
+    private register = async (req: express.Request, res: express.Response) =>{
+        var user: IUser = {
+            name: req.body.name,
+            email: req.body.email,
+            password: req.body.password,
+        }
+        try {
+            const data = await this._worker.register(user);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    
+    private me = async (req: express.Request, res: express.Response) =>{
+        var user = req.body.id;
+        try {
+            const data = await this._worker.me(user);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
     }
 }
