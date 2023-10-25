@@ -2,11 +2,9 @@
   "name": "sapasemua_backend",
   "version": "1.0.0",
   "description": "Test backend typescript",
-  "engines": { "node": "18.18.2" },
   "main": "dist/server.js",
   "scripts": {
     "start": "tsc && node dist/server.js",
-    "postinstall": "tsc && mv -i -v public dist/ && rm -v -rf src",
     "watch-ts": "tsc -w",
     "build-ts": "tsc "
   },

@@ -1,1 +1,1 @@
-web: node dist/server.js
+web: npm install -g typescript && node dist/server.js
