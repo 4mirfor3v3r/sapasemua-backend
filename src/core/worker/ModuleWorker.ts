@@ -9,6 +9,8 @@ interface IModuleWorker {
     addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>>;
     addSubModule(module: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
     getAllModule(): Promise<BaseResponse<Array<IModule>>>;
+    getOneModule(module_id: string): Promise<BaseResponse<IModule>>;
+    getLesson(module_id: string): Promise<BaseResponse<ISubmodule>>;
     addQuiz(module: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>>;
     // addUser(user: IUser) : Promise<BaseResponse<IUser>>;
     // getAllUser(): Promise<BaseResponse<Array<IUser>>>;
@@ -93,8 +95,38 @@ export default class ModuleWorker implements IModuleWorker{
     }
     getAllModule(): Promise<BaseResponse<Array<IModule>>> {
         return new Promise((resolve, reject) => {
-            MModule.find({}).select("-quiz").exec()
+            MModule.find({}).select("-quiz -submodule").exec()
                 .then((data) => {
+                    resolve(BaseResponse.success(data));
+                })
+                .catch((err: Error) => {
+                    console.log(err);
+                    reject(BaseResponse.error(err.message));
+                });
+        });
+    }
+    getOneModule(module_id: string): Promise<BaseResponse<IModule>> {
+        return new Promise((resolve, reject) => {
+            MModule.findOne({_id:module_id}).select("-quiz").populate("submodule", "-video").exec()
+                .then((data) => {
+                    if(data == null){
+                        return reject(BaseResponse.error("Modul tidak ditemukan"))
+                    }
+                    resolve(BaseResponse.success(data));
+                })
+                .catch((err: Error) => {
+                    console.log(err);
+                    reject(BaseResponse.error(err.message));
+                });
+        });
+    }
+    getLesson(module_id: string): Promise<BaseResponse<ISubmodule>> {
+        return new Promise((resolve, reject) => {
+            MSubmodule.findOne({_id:module_id}).exec()
+                .then((data) => {
+                    if(data == null){
+                        return reject(BaseResponse.error("Lesson tidak ditemukan"))
+                    }
                     resolve(BaseResponse.success(data));
                 })
                 .catch((err: Error) => {
