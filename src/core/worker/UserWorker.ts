@@ -1,13 +1,12 @@
 import { BaseResponse } from './../util/BaseResponse';
 import { IUser, MUser } from './../model/User';
-import { UploadedFile } from 'express-fileupload';
 import { hash } from 'bcrypt';
 
 interface IUserWorker {
     addUser(user: IUser) : Promise<BaseResponse<IUser>>;
     getAllUser(): Promise<BaseResponse<Array<IUser>>>;
 	getUserByEmail(email:string): Promise<BaseResponse<IUser>>;
-	editUserByEmail(email: string, user: IUser, avatar:UploadedFile | null): Promise<BaseResponse<IUser>>;
+	editUserByEmail(email: string, user: IUser): Promise<BaseResponse<IUser>>;
     deleteUserByEmail(email: string): Promise<BaseResponse<IUser>>;
 }
 
@@ -62,10 +61,10 @@ export default class UserWorker implements IUserWorker{
 		});
     }
 
-    editUserByEmail(email: string, user: IUser, avatar: UploadedFile | null): Promise<BaseResponse<IUser>> {
-		if(avatar!=null){
-			user.avatar = avatar.data.toString('base64')
-		}
+    editUserByEmail(email: string, user: IUser): Promise<BaseResponse<IUser>> {
+		// if(avatar!=null){
+		// 	user.avatar = avatar.data.toString('base64')
+		// }
         return new Promise((resolve, reject) => {
 			if (user) {
 				MUser.findOneAndUpdate({ email: email }, { $set: user }, {new:true, fields:"-password -__v"})

@@ -2,7 +2,6 @@ import { IUser } from "core/model/User";
 import { IController } from "core/shared/IController";
 import UserWorker from "../worker/UserWorker";
 import express from "express";
-import { UploadedFile } from "express-fileupload";
 
 export class UserController implements IController{
     path = '/user';
@@ -55,17 +54,17 @@ export class UserController implements IController{
 
     private updateUserByEmail = (req: express.Request, res: express.Response)=>{
 		var email = req.params.email;
-		var avatar = req.files?.avatar as UploadedFile | null
+		// var avatar = req.files?.avatar as UploadedFile | null
 		var model: IUser = {
             name: req.body.name,
             email: req.body.email,
             password: req.body.password
 		};
-		this._worker.editUserByEmail(email, model,avatar).then((data)=>{
-			res.json(data)
-		}).catch((error)=>{
-			res.json(error)
-		})
+		// this._worker.editUserByEmail(email, model,avatar).then((data)=>{
+		// 	res.json(data)
+		// }).catch((error)=>{
+		// 	res.json(error)
+		// })
     }
 
     private deleteUser = (req: express.Request, res: express.Response)=>{

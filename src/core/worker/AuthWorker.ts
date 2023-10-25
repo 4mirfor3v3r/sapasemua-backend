@@ -22,10 +22,10 @@ export class AuthWorker implements IAuthWorker {
 						if (compareSync(password, result.password)) {
 							resolve(BaseResponse.success(result));
 						} else {
-							resolve(BaseResponse.error('Password salah'));
+							reject(BaseResponse.error('Password salah'));
 						}
 					} else {
-						resolve(BaseResponse.error('Email tidak ditemukan'));
+						reject(BaseResponse.error('Email tidak ditemukan'));
 					}
 				})
 				.catch((err: Error) => {
@@ -45,11 +45,11 @@ export class AuthWorker implements IAuthWorker {
                         MUser.create(user).then((data) =>{
                             resolve(BaseResponse.success(data))
                         }).catch((err:Error)=>{
-                            resolve(BaseResponse.error(err.message))
+                            reject(BaseResponse.error(err.message))
                         })
                     })
                 } else {
-                    resolve(BaseResponse.error("Email Sudah terdaftar"))
+                    reject(BaseResponse.error("Email Sudah terdaftar"))
                 }
             }).catch((err: Error) => {
                 console.log(err);
@@ -65,7 +65,7 @@ export class AuthWorker implements IAuthWorker {
 				if (result) {
 					resolve(BaseResponse.success(result))
 				} else {
-					resolve(BaseResponse.error("User tidak ditemukan"))
+					reject(BaseResponse.error("User tidak ditemukan"))
 				}
 			}).catch((err: Error) => {
 				console.log(err);
