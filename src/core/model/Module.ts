@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { IQuiz } from './Quiz';
+import { ISubmodule } from './SubModule';
 
 export interface IModule {
 	name: string;
@@ -7,6 +8,7 @@ export interface IModule {
 	level: number;
 	description: string;
 	quiz?: IQuiz[];
+	submodule?: ISubmodule[];
 	creator: string;
 	createdAt?: Date;
 	updatedAt?: Date;
@@ -18,6 +20,7 @@ const schema = new mongoose.Schema({
 	level: { type: Number, required: true },
 	description: { type: String, required: true },
 	quiz: [{type:mongoose.Schema.Types.ObjectId, ref:"quizzes", required: true, default: []}],
+	submodule: [{type:mongoose.Schema.Types.ObjectId, ref:"submodules", required: true, default: []}],
 	creator: {type:mongoose.Schema.Types.ObjectId, ref:"users", required: true},
 	createdAt: { type: Date, default: Date.now },
 	updatedAt: { type: Date, default: Date.now },

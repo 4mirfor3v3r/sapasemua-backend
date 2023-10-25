@@ -10,7 +10,7 @@ export interface ISubmodule {
 
 const schema = new mongoose.Schema({
 	name: { type: String, required: true },
-	video: { type: String, required: true },
+	video: { type: String, required: false },
 	duration: { type: String, required: true },
 	createdAt: { type: Date, default: Date.now },
 	updatedAt: { type: Date, default: Date.now },

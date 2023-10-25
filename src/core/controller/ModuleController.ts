@@ -5,6 +5,7 @@ import ModuleWorker from "../worker/ModuleWorker";
 import express from "express";
 
 import multer from 'multer';
+import { ISubmodule } from 'core/model/SubModule';
 
 const upload = multer()
 
@@ -18,7 +19,8 @@ export class ModuleController implements IController{
         this.initRouter()
     }
     initRouter(){
-        this.router.post(`${this.path}/create`, upload.single("image"), this.addModule);
+        this.router.post(`${this.path}/create`, upload.fields([{name:'image', maxCount:1},{name:'modules'}]), this.addModule);
+        this.router.post(`${this.path}/submodule/create`, upload.single("video"), this.addSubModule);
         this.router.get(`${this.path}/get-all`, this.getAllModule);
         this.router.post(`${this.path}/quiz/create`, upload.single("attachment"), this.addQuiz);
     }
@@ -30,7 +32,19 @@ export class ModuleController implements IController{
             creator : req.body.creator
         }
         try {
-            const data = await this._worker.addModule(module, req.file);
+            const data = await this._worker.addModule(module, req.body.submodule, req.files as { [fieldname: string]: Express.Multer.File[]; } | undefined);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private addSubModule = async (req: express.Request, res: express.Response) => {
+        var module: ISubmodule = {
+            name : req.body.name,
+            duration : req.body.duration
+        }
+        try {
+            const data = await this._worker.addSubModule(req.body.module, module, req.file);
             res.json(data);
         } catch (err) {
             res.json(err);

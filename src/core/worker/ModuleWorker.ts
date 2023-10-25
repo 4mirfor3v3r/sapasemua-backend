@@ -3,9 +3,11 @@ import { IModule, MModule } from "./../model/Module";
 import { MUser } from "./../model/User";
 import { BaseResponse } from "./../util/BaseResponse";
 import { IQuiz, MQuiz } from "./../model/Quiz";
+import { ISubmodule, MSubmodule } from "./../model/SubModule";
 
 interface IModuleWorker {
-    addModule(module: IModule, avatar: Express.Multer.File|undefined): Promise<BaseResponse<IModule>>;
+    addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>>;
+    addSubModule(module: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
     getAllModule(): Promise<BaseResponse<Array<IModule>>>;
     addQuiz(module: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>>;
     // addUser(user: IUser) : Promise<BaseResponse<IUser>>;
@@ -16,17 +18,40 @@ interface IModuleWorker {
 }
 
 export default class ModuleWorker implements IModuleWorker{
-    addModule(module: IModule, image: Express.Multer.File|undefined): Promise<BaseResponse<IModule>> {
+    addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>> {
         return new Promise((resolve, reject) =>{
-            if(image == undefined){
-                return reject(BaseResponse.error("Gambar modul tidak boleh kosong"))
+            if(files == undefined){
+                return reject(BaseResponse.error("image modul dan video tidak boleh kosong"))
+            }
+            if(files["image"] == undefined){
+                return reject(BaseResponse.error("image modul tidak boleh kosong"))
+            }
+            if(files["modules"] == undefined){
+                return reject(BaseResponse.error("video submodul tidak boleh kosong"))
+            }
+            var submodules: ISubmodule[] = []
+            for (let i = 0; i < submodule.length; i++) {
+                submodules[i] = {
+                    name : submodule[i].name,
+                    duration : submodule[i].duration,
+                    video : (files["modules"] as Express.Multer.File[])[i].buffer.toString('base64')
+                }
             }
             MUser.findById(module.creator)
             .then((result)=>{
                 if (result) {
-                        module.image = image.buffer.toString('base64');
+                        module.image = (files["image"] as Express.Multer.File[])[0].buffer.toString('base64');
                         MModule.create(module).then((data) =>{
-                            resolve(BaseResponse.success(data))
+                            MSubmodule.insertMany(submodules).then((result) =>{
+                                MModule.findByIdAndUpdate(data._id, {$push:{submodule: result.map((value)=>{return value._id})}}).then((result) =>{
+                                    resolve(BaseResponse.success(data))
+                                }).catch((err:Error)=>{
+                                    reject(BaseResponse.error(err.message))
+                                })
+                            }
+                            ).catch((err:Error)=>{
+                                reject(BaseResponse.error(err.message))
+                            })
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
@@ -39,9 +64,36 @@ export default class ModuleWorker implements IModuleWorker{
             });
         });
     }
+    addSubModule(module: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>> {
+        return new Promise((resolve, reject) =>{
+            if(video == undefined){
+                return reject(BaseResponse.error("Video submodul tidak boleh kosong"))
+            }
+            MModule.findById(module)
+            .then((result)=>{
+                if (result) {
+                        submodule.video = video.buffer.toString('base64');
+                        MSubmodule.create(submodule).then((data) =>{
+                            MModule.findByIdAndUpdate(module, {$push:{submodule: data._id}}).then((result) =>{
+                                resolve(BaseResponse.success(data))
+                            }).catch((err:Error)=>{
+                                reject(BaseResponse.error(err.message))
+                            })
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
+                } else {
+                    reject(BaseResponse.error("Modul tidak ditemukan"))
+                }
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
     getAllModule(): Promise<BaseResponse<Array<IModule>>> {
         return new Promise((resolve, reject) => {
-            MModule.find({})
+            MModule.find({}).select("-quiz").exec()
                 .then((data) => {
                     resolve(BaseResponse.success(data));
                 })
