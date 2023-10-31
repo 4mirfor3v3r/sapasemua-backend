@@ -23,8 +23,13 @@ export class ModuleController implements IController{
         this.router.post(`${this.path}/submodule/create`, upload.single("video"), this.addSubModule);
         this.router.get(`${this.path}/get-all`, this.getAllModule);
         this.router.get(`${this.path}/:module_id`, this.getOneModule);
-        this.router.get(`${this.path}/lesson/:module_id`, this.getLesson);
+        this.router.get(`${this.path}/:module_id/quiz`, this.getQuizQuestion);
+        this.router.get(`${this.path}/:module_id/quiz/list`, this.getQuizByModule)
+        this.router.get(`${this.path}/lesson/:lesson_id`, this.getLesson);
         this.router.post(`${this.path}/quiz/create`, upload.single("attachment"), this.addQuiz);
+        this.router.post(`${this.path}/quiz/submit`, this.submitQuiz);
+        this.router.get(`${this.path}/quiz/result`, this.getQuizResultByUser);
+        this.router.get(`${this.path}/quiz/result/:result_id`, this.getQuizResultById);
     }
     private addModule = async (req: express.Request, res: express.Response) => {
         var module: IModule = {
@@ -41,12 +46,13 @@ export class ModuleController implements IController{
         }
     }
     private addSubModule = async (req: express.Request, res: express.Response) => {
-        var module: ISubmodule = {
+        var submodule: ISubmodule = {
+            module : req.body.module,
             name : req.body.name,
             duration : req.body.duration
         }
         try {
-            const data = await this._worker.addSubModule(req.body.module, module, req.file);
+            const data = await this._worker.addSubModule(req.body.module, submodule, req.file);
             res.json(data);
         } catch (err) {
             res.json(err);
@@ -70,7 +76,7 @@ export class ModuleController implements IController{
     }
     private getLesson = async (req: express.Request, res: express.Response) => {
         try {
-            const data = await this._worker.getLesson(req.params.module_id);
+            const data = await this._worker.getLesson(req.params.lesson_id);
             res.json(data);
         } catch (err) {
             res.json(err);
@@ -78,6 +84,7 @@ export class ModuleController implements IController{
     }
     private addQuiz = async (req: express.Request, res: express.Response) => {
         var quiz: IQuiz = {
+            module : req.body.module,
             question : req.body.question,
             answer : req.body.answer,
             option1 : req.body.option1,
@@ -87,6 +94,46 @@ export class ModuleController implements IController{
         }
         try {
             const data = await this._worker.addQuiz(req.body.module, quiz, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getQuizByModule = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getQuizByModule(req.params.module_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private submitQuiz = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.submitQuiz(req.body.module_id, req.body.creator, req.body.answer);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getQuizResultByUser = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getQuizResultByUser(req.body.user_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getQuizResultById = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getQuizResultById(req.params.result_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getQuizQuestion = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getQuizQuestion(req.params.module_id);
             res.json(data);
         } catch (err) {
             res.json(err);

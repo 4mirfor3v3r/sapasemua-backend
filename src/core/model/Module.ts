@@ -3,6 +3,7 @@ import { IQuiz } from './Quiz';
 import { ISubmodule } from './SubModule';
 
 export interface IModule {
+	_id?: string;
 	name: string;
 	image?: string;
 	level: number;

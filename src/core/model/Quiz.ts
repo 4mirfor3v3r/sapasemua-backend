@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 
 export interface IQuiz {
+  _id?: string;
+  module: string;
   question: string;
   answer: string;
   attachment?: string;
@@ -13,6 +15,7 @@ export interface IQuiz {
 }
 
 const schema = new mongoose.Schema({
+  module: { type: mongoose.Schema.Types.ObjectId, ref: "modules", required: true },
   question: { type: String, required: true },
   answer: { type: String, required: true },
   attachment: { type: String, required: true },

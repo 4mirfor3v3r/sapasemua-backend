@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 export interface ISubmodule {
+	module: string;
 	name: string;
 	video?: string;
 	duration: string;
@@ -9,6 +10,7 @@ export interface ISubmodule {
 }
 
 const schema = new mongoose.Schema({
+	module: { type: mongoose.Schema.Types.ObjectId, ref: 'modules', required: true },
 	name: { type: String, required: true },
 	video: { type: String, required: false },
 	duration: { type: String, required: true },
