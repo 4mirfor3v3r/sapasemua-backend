@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
+import { IComment } from './Comment';
+import { IUser } from './User';
 
 export interface IForum {
 	title: string;
 	description?: string;
-	attachment?: string[];
+	attachment?: string;
 	likes?: number;
-	comments?: string[];
-	creator: string;
+	comments?: IComment[];
+	creator: IUser;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -14,7 +16,7 @@ export interface IForum {
 const schema = new mongoose.Schema({
 	title: { type: String, required: true },
 	description: { type: String, required: true },
-	attachment: [{ type: String, required: true, default: [] }],
+	attachment: { type: String, required: false, default: null},
 	likes: { type: Number, required: true, default: 0 },
 	creator: {type:mongoose.Schema.Types.ObjectId, ref:"users", required: true},
 	comment: [{type:mongoose.Schema.Types.ObjectId, ref:"comments", required: true, default: []}],

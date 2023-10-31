@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
+import { IUser } from './User';
 
 export interface IComment {
 	title: string;
     forumId: string;
-	attachment?: string[];
-	creator: string;
-    replyTo?: string;
+	creator: IUser;
+    replyTo?: IComment;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
