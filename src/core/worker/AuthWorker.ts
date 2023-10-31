@@ -7,6 +7,7 @@ interface IAuthWorker {
 	login(email: string, password: string): Promise<BaseResponse<IUser>>;
 	register(user: IUser): Promise<BaseResponse<IUser>>;
 	me(user: string): Promise<BaseResponse<IUser>>;
+	editUser(userId:string,user: any, avatar?: Express.Multer.File|undefined): Promise<BaseResponse<IUser>>;
 }
 
 export class AuthWorker implements IAuthWorker {
@@ -73,4 +74,21 @@ export class AuthWorker implements IAuthWorker {
 			});
 		});
 	}
+	
+    editUser(userId:string, user: any, avatar?: Express.Multer.File|undefined): Promise<BaseResponse<IUser>>  {
+        return new Promise((resolve, reject) => {
+				if(avatar!=undefined){
+					user.avatar = avatar.buffer.toString('base64')
+				}
+				MUser.findByIdAndUpdate(userId, user,{new:true, fields: "-password -__v" })
+					.then((data) => {
+						if (data) resolve(BaseResponse.success(data));
+						else reject(BaseResponse.error('Something wrong'));
+					})
+					.catch((err: Error) => {
+						reject(BaseResponse.error(err.message));
+					});
+		});
+    }
+
 }

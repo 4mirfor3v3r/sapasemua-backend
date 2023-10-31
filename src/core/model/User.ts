@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 
 export interface IUser {
+	_id?: string;
 	name: string;
 	email: string;
 	password: string;
 	avatar?: string;
 	domicile?: string;
 	bio	?: string;
+	role?: string;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -18,6 +20,7 @@ const schema = new mongoose.Schema({
 	avatar: { type: String, required: false,default: null},
 	domicile: { type: String, required: false,default: null },
 	bio: { type: String, required: false,default: null },
+	role: { type: String, required: true,default: "PEMELAJAR" },
 	createdAt: { type: Date, default: Date.now },
 	updatedAt: { type: Date, default: Date.now },
 });
