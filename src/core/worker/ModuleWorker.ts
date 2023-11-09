@@ -236,7 +236,7 @@ export default class ModuleWorker implements IModuleWorker{
                         answers : answers.map((value)=>{return value.answer}),
                         score : score / data.quiz.length*100
                     }
-                    MQuizResult.create(quizResult).then((data) => data.populate("quiz", "-attachment")).then((data) =>{
+                    MQuizResult.create(quizResult).then((data) => data.populate("quiz", "-attachment")).then((data) => data.populate("module", "_id")).then((data) =>{
                         resolve(BaseResponse.success(data))
                     }).catch((err:Error)=>{
                         reject(BaseResponse.error(err.message))
