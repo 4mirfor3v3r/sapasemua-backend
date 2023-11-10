@@ -7,7 +7,7 @@ import express from "express";
 import multer from 'multer';
 import { ISubmodule } from 'core/model/SubModule';
 
-const upload = multer()
+const upload = multer({ storage: multer.memoryStorage() })
 
 export class ModuleController implements IController{
     path = "/module"

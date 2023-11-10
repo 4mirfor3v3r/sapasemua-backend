@@ -5,6 +5,7 @@ import { BaseResponse } from "./../util/BaseResponse";
 import { IQuiz, MQuiz } from "./../model/Quiz";
 import { ISubmodule, MSubmodule } from "./../model/SubModule";
 import { IQuizResult, MQuizResult } from "./../model/QuizResult";
+import { AzureUploader } from "./../util/AzureUploader";
 
 interface IModuleWorker {
     addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>>;
@@ -17,14 +18,11 @@ interface IModuleWorker {
     getQuizQuestion(module: string): Promise<BaseResponse<Array<IQuiz>>>;
     submitQuiz(module:string, creator: string, answers:IQuiz[]): Promise<BaseResponse<IQuizResult>>;
     getQuizResultByUser(user: string): Promise<BaseResponse<Array<IQuizResult>>>;
-    // addUser(user: IUser) : Promise<BaseResponse<IUser>>;
-    // getAllUser(): Promise<BaseResponse<Array<IUser>>>;
-	// getUserByEmail(email:string): Promise<BaseResponse<IUser>>;
-	// editUserByEmail(email: string, user: IUser, avatar:UploadedFile | null): Promise<BaseResponse<IUser>>;
-    // deleteUserByEmail(email: string): Promise<BaseResponse<IUser>>;
 }
 
 export default class ModuleWorker implements IModuleWorker{
+    private azureUploader = new AzureUploader()
+
     addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>> {
         return new Promise((resolve, reject) =>{
             if(files == undefined){
@@ -36,22 +34,26 @@ export default class ModuleWorker implements IModuleWorker{
             if(files["modules"] == undefined){
                 return reject(BaseResponse.error("video submodul tidak boleh kosong"))
             }
-            MUser.findById(module.creator)
-            .then((result)=>{
+            MUser.findById(module.creator).then((result)=>{
                 if (result) {
-                        module.image = (files["image"] as Express.Multer.File[])[0].buffer.toString('base64');
-                        MModule.create(module).then((data) =>{
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_MODULE ?? "", files["image"][0]).then((imageName) => {
+                        module.image = imageName
+                        MModule.create(module).then(async (data) =>{
                             var submodules: ISubmodule[] = []
                             for (let i = 0; i < submodule.length; i++) {
-                                submodules[i] = {
-                                    module : data._id ?? "",
-                                    name : submodule[i].name,
-                                    duration : submodule[i].duration,
-                                    video : (files["modules"] as Express.Multer.File[])[i].buffer.toString('base64')
-                                }
+                                await this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", files["modules"][i]).then((videoName) => {
+                                    submodules[i] = {
+                                        module : data._id ?? "",
+                                        name : submodule[i].name,
+                                        duration : submodule[i].duration,
+                                        video : videoName
+                                    }
+                                }).catch((err:Error)=>{
+                                    return reject(BaseResponse.error(err.message))
+                                })
                             }
                             MSubmodule.insertMany(submodules).then((result) =>{
-                                MModule.findByIdAndUpdate(data._id, {$push:{submodule: result.map((value)=>{return value._id})}}).then((result) =>{
+                                MModule.findByIdAndUpdate(data._id, {$push:{submodule: result.map((value)=>{return value._id})}}, {new:true}).then((result) =>{
                                     resolve(BaseResponse.success(data))
                                 }).catch((err:Error)=>{
                                     reject(BaseResponse.error(err.message))
@@ -63,6 +65,9 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
                 } else {
                     reject(BaseResponse.error("Pengguna tidak ditemukan"))
                 }
@@ -80,9 +85,10 @@ export default class ModuleWorker implements IModuleWorker{
             MModule.findById(module)
             .then((result)=>{
                 if (result) {
-                        submodule.video = video.buffer.toString('base64');
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", video).then((videoName) => {
+                        submodule.video = videoName
                         MSubmodule.create(submodule).then((data) =>{
-                            MModule.findByIdAndUpdate(module, {$push:{submodule: data._id}}).then((result) =>{
+                            MModule.findByIdAndUpdate(module, {$push:{submodule: data._id}}, {new:true}).then((result) =>{
                                 resolve(BaseResponse.success(data))
                             }).catch((err:Error)=>{
                                 reject(BaseResponse.error(err.message))
@@ -90,6 +96,9 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
                 } else {
                     reject(BaseResponse.error("Modul tidak ditemukan"))
                 }
@@ -102,7 +111,14 @@ export default class ModuleWorker implements IModuleWorker{
     getAllModule(): Promise<BaseResponse<Array<IModule>>> {
         return new Promise((resolve, reject) => {
             MModule.find({}).select("-quiz -submodule").exec()
-                .then((data) => {
+                .then(async (data) => {
+                    for(let i = 0; i < data.length; i++){
+                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_MODULE ?? "", data[i].image ?? "").then((url) => {
+                            data[i].image = url
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
+                    }
                     resolve(BaseResponse.success(data));
                 })
                 .catch((err: Error) => {
@@ -118,7 +134,21 @@ export default class ModuleWorker implements IModuleWorker{
                     if(data == null){
                         return reject(BaseResponse.error("Modul tidak ditemukan"))
                     }
-                    resolve(BaseResponse.success(data));
+                    this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_MODULE ?? "", data.image ?? "").then((url) => {
+                        data.image = url
+                        // if(data.submodule != null && data.submodule.length > 0){
+                        //     data.submodule.forEach((value)=>{
+                        //         this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", value.video ?? "").then((url) => {
+                        //             value.video = url
+                        //         }).catch((err:Error)=>{
+                        //             reject(BaseResponse.error(err.message))
+                        //         })
+                        //     })
+                        // }
+                        resolve(BaseResponse.success(data));
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
                 })
                 .catch((err: Error) => {
                     console.log(err);
@@ -133,7 +163,12 @@ export default class ModuleWorker implements IModuleWorker{
                     if(data == null){
                         return reject(BaseResponse.error("Lesson tidak ditemukan"))
                     }
-                    resolve(BaseResponse.success(data));
+                    this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", data.video ?? "").then((url) => {
+                        data.video = url
+                        resolve(BaseResponse.success(data));
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
                 })
                 .catch((err: Error) => {
                     console.log(err);
@@ -149,9 +184,10 @@ export default class ModuleWorker implements IModuleWorker{
             MModule.findById(module)
             .then((result)=>{
                 if (result) {
-                        quiz.attachment = attachment.buffer.toString('base64');
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_QUIZ ?? "", attachment).then((attachmentName) => {
+                        quiz.attachment = attachmentName
                         MQuiz.create(quiz).then((data) =>{
-                            MModule.findByIdAndUpdate(module, {$push:{quiz: data._id}}).then((result)=>{
+                            MModule.findByIdAndUpdate(module, {$push:{quiz: data._id}}, {new:true}).then((result)=>{
                                 resolve(BaseResponse.success(data))
                             }).catch((err:Error)=>{
                                 reject(BaseResponse.error(err.message))
@@ -159,6 +195,9 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
                 } else {
                     reject(BaseResponse.error("Modul tidak ditemukan"))
                 }
@@ -186,9 +225,19 @@ export default class ModuleWorker implements IModuleWorker{
     getQuizQuestion(module: string): Promise<BaseResponse<Array<IQuiz>>> {
         return new Promise((resolve, reject) => {
             MModule.findById(module).select("quiz").populate("quiz").exec()
-                .then((data) => {
+                .then(async (data) => {
                     if(data == null){
                         return reject(BaseResponse.error("Modul tidak ditemukan"))
+                    }
+                    if(data.quiz == null){
+                        return reject(BaseResponse.error("Quiz kosong"))
+                    }
+                    for(let i = 0; i < data.quiz.length; i++){
+                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_QUIZ ?? "", data.quiz[i].attachment ?? "").then((url) => {
+                            data.quiz![i].attachment = url
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
                     }
                     resolve(BaseResponse.success(data.quiz ?? []));
                 })

@@ -1,3 +1,4 @@
+import { AzureUploader } from './../util/AzureUploader';
 import { BaseResponse } from './../util/BaseResponse';
 import { IUser, MUser } from './../model/User';
 import { compareSync, hash } from 'bcrypt';
@@ -11,6 +12,8 @@ interface IAuthWorker {
 }
 
 export class AuthWorker implements IAuthWorker {
+    private azureUploader = new AzureUploader()
+
     ping(): string {
         return "Pong";
     }
@@ -62,9 +65,18 @@ export class AuthWorker implements IAuthWorker {
 	me(user: string): Promise<BaseResponse<IUser>> {
 		return new Promise((resolve, reject) =>{
 			MUser.findById(user)
-			.then((result)=>{
+			.then(async (result)=>{
 				if (result) {
-					resolve(BaseResponse.success(result))
+					if(result.avatar!=undefined){
+						await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ??"", result.avatar).then((avatarUrl) => {
+							result.avatar = avatarUrl
+							resolve(BaseResponse.success(result))
+						}).catch((err: Error) => {
+							reject(BaseResponse.error(err.message));
+						})
+					}else{
+						resolve(BaseResponse.success(result))
+					}
 				} else {
 					reject(BaseResponse.error("User tidak ditemukan"))
 				}
@@ -76,9 +88,13 @@ export class AuthWorker implements IAuthWorker {
 	}
 	
     editUser(userId:string, user: any, avatar?: Express.Multer.File|undefined): Promise<BaseResponse<IUser>>  {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
 				if(avatar!=undefined){
-					user.avatar = avatar.buffer.toString('base64')
+					await this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_USER??"", avatar).then((avatarName) => {
+						user.avatar = avatarName
+					}).catch((err: Error) => {
+						reject(BaseResponse.error(err.message));
+					})
 				}
 				MUser.findByIdAndUpdate(userId, user,{new:true, fields: "-password -__v" })
 					.then((data) => {
