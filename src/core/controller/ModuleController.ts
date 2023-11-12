@@ -28,7 +28,7 @@ export class ModuleController implements IController{
         this.router.get(`${this.path}/lesson/:lesson_id`, this.getLesson);
         this.router.post(`${this.path}/quiz/create`, upload.single("attachment"), this.addQuiz);
         this.router.post(`${this.path}/quiz/submit`, this.submitQuiz);
-        this.router.get(`${this.path}/quiz/result`, this.getQuizResultByUser);
+        this.router.get(`${this.path}/quiz/:user_id/result`, this.getQuizResultByUser);
         this.router.get(`${this.path}/quiz/result/:result_id`, this.getQuizResultById);
     }
     private addModule = async (req: express.Request, res: express.Response) => {
@@ -117,7 +117,7 @@ export class ModuleController implements IController{
     }
     private getQuizResultByUser = async (req: express.Request, res: express.Response) => {
         try {
-            const data = await this._worker.getQuizResultByUser(req.body.user_id);
+            const data = await this._worker.getQuizResultByUser(req.params.user_id);
             res.json(data);
         } catch (err) {
             res.json(err);
