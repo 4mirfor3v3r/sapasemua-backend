@@ -77,23 +77,24 @@ export default class ForumWorker implements IForumWorker{
                     if(data.attachment){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
                             data.attachment = url
-                            // resolve(BaseResponse.success(data))
                         })
                     }
                     if(data.creator.avatar){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
                             data.creator.avatar = url
-                            // resolve(BaseResponse.success(data))
                         })
                     }
                     if(data.comment){
                         if(data.comment.length > 0){
                             for(let i = 0; i < data.comment.length; i++){
                                 if(data.comment[i].creator.avatar){
-                                    console.log("masuk")
-                                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comment[i].creator.avatar ?? "").then(async(url) => {
-                                        if(data.comment) data.comment[i].creator.avatar = url
-                                    })
+                                    if(data.comment[i].creator._id != data.creator._id){
+                                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comment[i].creator.avatar ?? "").then(async(commentUserUrl) => {
+                                            if(data.comment) data.comment[i].creator.avatar = commentUserUrl
+                                        })
+                                    }else{
+                                        data.comment[i].creator.avatar = data.creator.avatar
+                                    }
                                 }
                             }
                         }
