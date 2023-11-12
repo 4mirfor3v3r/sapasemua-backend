@@ -21,10 +21,15 @@ export class AuthWorker implements IAuthWorker {
     login(email: string, password: string): Promise<BaseResponse<IUser>> {
         return new Promise((resolve, reject)=>{
             MUser.findOne({ email: email })
-				.then((result) => {
+				.then(async (result) => {
 					if (result) {
 						if (compareSync(password, result.password)) {
-							resolve(BaseResponse.success(result));
+							if(result.avatar!=undefined){
+								await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ??"", result.avatar).then((avatarUrl) => {
+									result.avatar = avatarUrl
+								})
+							}
+							resolve(BaseResponse.success(result))
 						} else {
 							reject(BaseResponse.error('Password salah'));
 						}
@@ -71,8 +76,6 @@ export class AuthWorker implements IAuthWorker {
 						await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ??"", result.avatar).then((avatarUrl) => {
 							result.avatar = avatarUrl
 							resolve(BaseResponse.success(result))
-						}).catch((err: Error) => {
-							reject(BaseResponse.error(err.message));
 						})
 					}else{
 						resolve(BaseResponse.success(result))
@@ -92,8 +95,6 @@ export class AuthWorker implements IAuthWorker {
 				if(avatar!=undefined){
 					await this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_USER??"", avatar).then((avatarName) => {
 						user.avatar = avatarName
-					}).catch((err: Error) => {
-						reject(BaseResponse.error(err.message));
 					})
 				}
 				MUser.findByIdAndUpdate(userId, user,{new:true, fields: "-password -__v" })

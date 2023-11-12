@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
 import { IComment } from './Comment';
 import { IUser } from './User';
+import { AzureUploader } from './../util/AzureUploader';
 
 export interface IForum {
 	title: string;
 	description?: string;
 	attachment?: string;
 	likes?: number;
-	comments?: IComment[];
+	comment?: IComment[];
 	creator: IUser;
 	createdAt?: Date;
 	updatedAt?: Date;

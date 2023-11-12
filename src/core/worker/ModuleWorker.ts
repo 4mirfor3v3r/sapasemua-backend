@@ -48,8 +48,6 @@ export default class ModuleWorker implements IModuleWorker{
                                         duration : submodule[i].duration,
                                         video : videoName
                                     }
-                                }).catch((err:Error)=>{
-                                    return reject(BaseResponse.error(err.message))
                                 })
                             }
                             MSubmodule.insertMany(submodules).then((result) =>{
@@ -65,8 +63,6 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
-                    }).catch((err:Error)=>{
-                        reject(BaseResponse.error(err.message))
                     })
                 } else {
                     reject(BaseResponse.error("Pengguna tidak ditemukan"))
@@ -96,8 +92,6 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
-                    }).catch((err:Error)=>{
-                        reject(BaseResponse.error(err.message))
                     })
                 } else {
                     reject(BaseResponse.error("Modul tidak ditemukan"))
@@ -115,8 +109,6 @@ export default class ModuleWorker implements IModuleWorker{
                     for(let i = 0; i < data.length; i++){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_MODULE ?? "", data[i].image ?? "").then((url) => {
                             data[i].image = url
-                        }).catch((err:Error)=>{
-                            reject(BaseResponse.error(err.message))
                         })
                     }
                     resolve(BaseResponse.success(data));
@@ -146,8 +138,6 @@ export default class ModuleWorker implements IModuleWorker{
                         //     })
                         // }
                         resolve(BaseResponse.success(data));
-                    }).catch((err:Error)=>{
-                        reject(BaseResponse.error(err.message))
                     })
                 })
                 .catch((err: Error) => {
@@ -166,8 +156,6 @@ export default class ModuleWorker implements IModuleWorker{
                     this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", data.video ?? "").then((url) => {
                         data.video = url
                         resolve(BaseResponse.success(data));
-                    }).catch((err:Error)=>{
-                        reject(BaseResponse.error(err.message))
                     })
                 })
                 .catch((err: Error) => {
@@ -195,8 +183,6 @@ export default class ModuleWorker implements IModuleWorker{
                         }).catch((err:Error)=>{
                             reject(BaseResponse.error(err.message))
                         })
-                    }).catch((err:Error)=>{
-                        reject(BaseResponse.error(err.message))
                     })
                 } else {
                     reject(BaseResponse.error("Modul tidak ditemukan"))
@@ -235,8 +221,6 @@ export default class ModuleWorker implements IModuleWorker{
                     for(let i = 0; i < data.quiz.length; i++){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_QUIZ ?? "", data.quiz[i].attachment ?? "").then((url) => {
                             data.quiz![i].attachment = url
-                        }).catch((err:Error)=>{
-                            reject(BaseResponse.error(err.message))
                         })
                     }
                     resolve(BaseResponse.success(data.quiz ?? []));

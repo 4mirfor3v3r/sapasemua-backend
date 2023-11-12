@@ -32,8 +32,6 @@ export default class ForumWorker implements IForumWorker{
                     await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
                         data.attachment = url
                         resolve(BaseResponse.success(data))
-                    }).catch((err:Error)=>{
-                        return reject(BaseResponse.error(err.message))
                     })
                 }).catch((err:Error)=>{
                     reject(BaseResponse.error(err.message))
@@ -51,15 +49,11 @@ export default class ForumWorker implements IForumWorker{
                         if(data[i].attachment){
                             await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data[i].attachment ?? "").then((url) => {
                                 data[i].attachment = url
-                            }).catch((err:Error)=>{
-                                return reject(BaseResponse.error(err.message))
                             })
                         }
                         if(data[i].creator.avatar){
                             await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data[i].creator.avatar ?? "").then((url) => {
                                 data[i].creator.avatar = url
-                            }).catch((err:Error)=>{
-                                return reject(BaseResponse.error(err.message))
                             })
                         }
                     }
@@ -83,27 +77,24 @@ export default class ForumWorker implements IForumWorker{
                     if(data.attachment){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
                             data.attachment = url
-                            resolve(BaseResponse.success(data))
-                        }).catch((err:Error)=>{
-                            return reject(BaseResponse.error(err.message))
+                            // resolve(BaseResponse.success(data))
                         })
                     }
                     if(data.creator.avatar){
                         await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
                             data.creator.avatar = url
-                            resolve(BaseResponse.success(data))
-                        }).catch((err:Error)=>{
-                            return reject(BaseResponse.error(err.message))
+                            // resolve(BaseResponse.success(data))
                         })
                     }
-                    if(data.comments && data.comments.length > 0){
-                        for(let i = 0; i < data.comments.length; i++){
-                            if(data.comments[i].creator.avatar){
-                                await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comments[i].creator.avatar ?? "").then((url) => {
-                                    data.comments![i].creator.avatar = url
-                                }).catch((err:Error)=>{
-                                    return reject(BaseResponse.error(err.message))
-                                })
+                    if(data.comment){
+                        if(data.comment.length > 0){
+                            for(let i = 0; i < data.comment.length; i++){
+                                if(data.comment[i].creator.avatar){
+                                    console.log("masuk")
+                                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comment[i].creator.avatar ?? "").then(async(url) => {
+                                        if(data.comment) data.comment[i].creator.avatar = url
+                                    })
+                                }
                             }
                         }
                     }
@@ -127,8 +118,6 @@ export default class ForumWorker implements IForumWorker{
                 await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
                     data.creator.avatar = url
                     resolve(BaseResponse.success(data))
-                }).catch((err:Error)=>{
-                    return reject(BaseResponse.error(err.message))
                 })
             }).catch((err:Error)=>{
                 reject(BaseResponse.error(err.message))
@@ -158,29 +147,23 @@ export default class ForumWorker implements IForumWorker{
                         if(data == null){
                             return reject(BaseResponse.error("Forum tidak ditemukan"))
                         }
-                        if(data.attachment){
+                        if(data.attachment && data.attachment != null){
                             await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
                                 data.attachment = url
-                                resolve(BaseResponse.success(data))
-                            }).catch((err:Error)=>{
-                                return reject(BaseResponse.error(err.message))
+                                // resolve(BaseResponse.success(data))
                             })
                         }
                         if(data.creator.avatar){
                             await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
                                 data.creator.avatar = url
-                                resolve(BaseResponse.success(data))
-                            }).catch((err:Error)=>{
-                                return reject(BaseResponse.error(err.message))
+                                // resolve(BaseResponse.success(data))
                             })
                         }
-                        if(data.comments && data.comments.length > 0){
-                            for(let i = 0; i < data.comments.length; i++){
-                                if(data.comments[i].creator.avatar){
-                                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comments[i].creator.avatar ?? "").then((url) => {
-                                        data.comments![i].creator.avatar = url
-                                    }).catch((err:Error)=>{
-                                        return reject(BaseResponse.error(err.message))
+                        if(data.comment && data.comment.length > 0){
+                            for(let i = 0; i < data.comment.length; i++){
+                                if(data.comment[i].creator.avatar){
+                                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comment[i].creator.avatar ?? "").then((url) => {
+                                        data.comment![i].creator.avatar = url
                                     })
                                 }
                             }

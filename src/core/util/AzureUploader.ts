@@ -26,6 +26,9 @@ export class AzureUploader {
 
     getFileSasUrl(containerName:string, blobName:string): Promise<string>{
         return new Promise<string>(async (resolve, reject) =>  {
+            if (containerName == "" || blobName == "") {
+                reject("Empty container name or blob name")
+            }
             const blobService = new BlockBlobClient(process.env.AZURE_STORAGE_CONNECTION_STRING?.toString() ?? "", containerName, blobName)
             const startDate = new Date()
             const expiryDate = new Date(startDate)
