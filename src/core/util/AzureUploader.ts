@@ -1,4 +1,4 @@
-import { BlobGenerateSasUrlOptions, BlobSASPermissions, BlockBlobClient } from "@azure/storage-blob"
+import { BlobGenerateSasUrlOptions, BlobSASPermissions, BlobServiceClient, BlockBlobClient, StorageSharedKeyCredential, generateBlobSASQueryParameters } from "@azure/storage-blob"
 const getStream = require('into-stream')
 
 export class AzureUploader {
@@ -40,6 +40,7 @@ export class AzureUploader {
                 expiresOn: expiryDate, 
                 startsOn: startDate
             }
+            
 
             blobService.generateSasUrl(sharedAccessPolicy).then((fileUrl:string) => {
                 resolve(fileUrl)
@@ -47,6 +48,26 @@ export class AzureUploader {
                 console.log(error)
                 reject(error)
             })
+        })
+    }
+
+    getFileSasUrlv2(containerName:string, blobName:string): Promise<string>{
+        return new Promise<string>(async (resolve, reject) =>  {
+            let name = blobName
+            let container = containerName
+            if (containerName == "" || blobName == "") {
+                reject("Empty container name or blob name")
+            }
+            
+            const blobService = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING?.toString() ?? "")
+            const blobSas = generateBlobSASQueryParameters({
+                containerName: containerName,
+                blobName: blobName,
+                permissions: BlobSASPermissions.parse("r"),
+                expiresOn: new Date(new Date().valueOf() + 86400),
+                startsOn: new Date()
+            }, (blobService.credential as StorageSharedKeyCredential)).toString()
+            resolve(blobService.url+containerName+"?"+blobSas)
         })
     }
 }

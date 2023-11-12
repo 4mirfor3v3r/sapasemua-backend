@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { IUser } from './User';
 
 export interface IComment {
+	_id:string;
 	title: string;
     forumId: string;
 	creator: IUser;
