@@ -1,6 +1,7 @@
 import { BaseResponse } from './../util/BaseResponse';
 import { IForum, MForum } from './../model/Forum';
 import { IComment, MComment } from './../model/Comment';
+import { AzureUploader } from './../util/AzureUploader';
 
 interface IForumWorker {
     addForum(forum: IForum, attachment: Express.Multer.File|undefined) : Promise<BaseResponse<IForum>>;
@@ -14,17 +15,26 @@ interface IForumWorker {
 }
 
 export default class ForumWorker implements IForumWorker{
+    private azureUploader = new AzureUploader()
+
     addForum(forum: IForum, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IForum>> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             if(attachment){
-                forum.attachment = attachment.buffer.toString('base64')
+                await this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM??"", attachment).then((avatarName) => {
+                    forum.attachment = avatarName
+                })
             }
             MForum.create(forum).then((data) =>{
-                MForum.findById(data._id).populate("creator", "name role avatar").populate("comment", "_id").then((data) =>{
+                MForum.findById(data._id).populate("creator", "name role avatar").populate("comment", "_id").then(async(data) =>{
                     if(data == null){
                         return reject(BaseResponse.error("Forum tidak ditemukan"))
                     }
-                    resolve(BaseResponse.success(data))
+                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
+                        data.attachment = url
+                        resolve(BaseResponse.success(data))
+                    }).catch((err:Error)=>{
+                        return reject(BaseResponse.error(err.message))
+                    })
                 }).catch((err:Error)=>{
                     reject(BaseResponse.error(err.message))
                 })
@@ -36,7 +46,23 @@ export default class ForumWorker implements IForumWorker{
     getAllForum(page: number, pageSize:number): Promise<BaseResponse<IForum[]>> {
         return new Promise((resolve, reject) => {
             MForum.find().skip((page-1)*pageSize).limit(pageSize).populate("creator", "avatar").populate("comment", "_id").then((data) =>{
-                MForum.countDocuments().then((count)=>{
+                MForum.countDocuments().then(async(count)=>{
+                    for(let i = 0; i < data.length; i++){
+                        if(data[i].attachment){
+                            await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data[i].attachment ?? "").then((url) => {
+                                data[i].attachment = url
+                            }).catch((err:Error)=>{
+                                return reject(BaseResponse.error(err.message))
+                            })
+                        }
+                        if(data[i].creator.avatar){
+                            await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data[i].creator.avatar ?? "").then((url) => {
+                                data[i].creator.avatar = url
+                            }).catch((err:Error)=>{
+                                return reject(BaseResponse.error(err.message))
+                            })
+                        }
+                    }
                     resolve(BaseResponse.success(data, page, Math.ceil(count/pageSize)))
                 }).catch((err:Error)=>{
                     reject(BaseResponse.error(err.message))
@@ -50,26 +76,60 @@ export default class ForumWorker implements IForumWorker{
         return new Promise((resolve, reject) => {
             MForum.findById(forumId)
                 .populate("creator", "name role avatar")
-                .populate({path:"comment", populate:{path:"creator", select:"name role avatar"}}).then((data) =>{
+                .populate({path:"comment", populate:{path:"creator", select:"name role avatar"}}).then(async (data) =>{
                     if(data == null){
                         return reject(BaseResponse.error("Modul tidak ditemukan"))
                     }
-                     resolve(BaseResponse.success(data))
+                    if(data.attachment){
+                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
+                            data.attachment = url
+                            resolve(BaseResponse.success(data))
+                        }).catch((err:Error)=>{
+                            return reject(BaseResponse.error(err.message))
+                        })
+                    }
+                    if(data.creator.avatar){
+                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
+                            data.creator.avatar = url
+                            resolve(BaseResponse.success(data))
+                        }).catch((err:Error)=>{
+                            return reject(BaseResponse.error(err.message))
+                        })
+                    }
+                    if(data.comments && data.comments.length > 0){
+                        for(let i = 0; i < data.comments.length; i++){
+                            if(data.comments[i].creator.avatar){
+                                await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comments[i].creator.avatar ?? "").then((url) => {
+                                    data.comments![i].creator.avatar = url
+                                }).catch((err:Error)=>{
+                                    return reject(BaseResponse.error(err.message))
+                                })
+                            }
+                        }
+                    }
+                    resolve(BaseResponse.success(data))
             }).catch((err:Error)=>{
                 reject(BaseResponse.error(err.message))
             })
         })
     }
     editForumById(forumId: string, forum: IForum, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IForum>> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             if(attachment){
-                forum.attachment = attachment.buffer.toString('base64')
+                await this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM??"", attachment).then((avatarName) => {
+                    forum.attachment = avatarName
+                })
             }
-            MForum.findByIdAndUpdate(forumId, forum).then((data) =>{
+            MForum.findByIdAndUpdate(forumId, forum).then(async (data) =>{
                 if(data == null){
                     return reject(BaseResponse.error("Forum tidak ditemukan"))
                 }
-                resolve(BaseResponse.success(data))
+                await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
+                    data.creator.avatar = url
+                    resolve(BaseResponse.success(data))
+                }).catch((err:Error)=>{
+                    return reject(BaseResponse.error(err.message))
+                })
             }).catch((err:Error)=>{
                 reject(BaseResponse.error(err.message))
             })
@@ -94,9 +154,36 @@ export default class ForumWorker implements IForumWorker{
                     if(data == null){
                         return reject(BaseResponse.error("Forum tidak ditemukan"))
                     }
-                    MForum.findById(forumId).populate("creator", "name role avatar").populate({path:"comment", populate:{path:"creator", select:"name role avatar"}}).then((data) =>{
+                    MForum.findById(forumId).populate("creator", "name role avatar").populate({path:"comment", populate:{path:"creator", select:"name role avatar"}}).then(async (data) =>{
                         if(data == null){
                             return reject(BaseResponse.error("Forum tidak ditemukan"))
+                        }
+                        if(data.attachment){
+                            await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "", data.attachment ?? "").then((url) => {
+                                data.attachment = url
+                                resolve(BaseResponse.success(data))
+                            }).catch((err:Error)=>{
+                                return reject(BaseResponse.error(err.message))
+                            })
+                        }
+                        if(data.creator.avatar){
+                            await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.creator.avatar ?? "").then((url) => {
+                                data.creator.avatar = url
+                                resolve(BaseResponse.success(data))
+                            }).catch((err:Error)=>{
+                                return reject(BaseResponse.error(err.message))
+                            })
+                        }
+                        if(data.comments && data.comments.length > 0){
+                            for(let i = 0; i < data.comments.length; i++){
+                                if(data.comments[i].creator.avatar){
+                                    await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ?? "", data.comments[i].creator.avatar ?? "").then((url) => {
+                                        data.comments![i].creator.avatar = url
+                                    }).catch((err:Error)=>{
+                                        return reject(BaseResponse.error(err.message))
+                                    })
+                                }
+                            }
                         }
                         resolve(BaseResponse.success(data))
                     }).catch((err:Error)=>{
