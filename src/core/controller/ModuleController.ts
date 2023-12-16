@@ -20,12 +20,16 @@ export class ModuleController implements IController{
     }
     initRouter(){
         this.router.post(`${this.path}/create`, upload.fields([{name:'image', maxCount:1},{name:'modules'}]), this.addModule);
+        this.router.post(`${this.path}/:module_id/edit`, upload.single("image"), this.editModule);
         this.router.post(`${this.path}/submodule/create`, upload.single("video"), this.addSubModule);
+        this.router.post(`${this.path}/submodule/:submodule_id/edit`, upload.single("video"), this.editSubModule);
         this.router.get(`${this.path}/get-all`, this.getAllModule);
         this.router.get(`${this.path}/:module_id`, this.getOneModule);
+        this.router.delete(`${this.path}/:module_id`, this.deleteModule);
         this.router.get(`${this.path}/:module_id/quiz`, this.getQuizQuestion);
         this.router.get(`${this.path}/:module_id/quiz/list`, this.getQuizByModule)
         this.router.get(`${this.path}/lesson/:lesson_id`, this.getLesson);
+        this.router.get(`${this.path}/:module_id/submodule`, this.getLessons);
         this.router.post(`${this.path}/quiz/create`, upload.single("attachment"), this.addQuiz);
         this.router.post(`${this.path}/quiz/submit`, this.submitQuiz);
         this.router.get(`${this.path}/quiz/:user_id/result`, this.getQuizResultByUser);
@@ -45,6 +49,20 @@ export class ModuleController implements IController{
             res.json(err);
         }
     }
+    private editModule = async (req: express.Request, res: express.Response) => {
+        var module: IModule = {
+            name : req.body.name,
+            level : req.body.level,
+            description : req.body.description,
+            creator : req.body.creator
+        }
+        try {
+            const data = await this._worker.editModule(req.params.module_id, module, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
     private addSubModule = async (req: express.Request, res: express.Response) => {
         var submodule: ISubmodule = {
             module : req.body.module,
@@ -53,6 +71,19 @@ export class ModuleController implements IController{
         }
         try {
             const data = await this._worker.addSubModule(req.body.module, submodule, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private editSubModule = async (req: express.Request, res: express.Response) => {
+        var submodule: ISubmodule = {
+            module : req.body.module,
+            name : req.body.name,
+            duration : req.body.duration
+        }
+        try {
+            const data = await this._worker.editSubModule(req.params.submodule_id, submodule, req.file);
             res.json(data);
         } catch (err) {
             res.json(err);
@@ -74,9 +105,25 @@ export class ModuleController implements IController{
             res.json(err);
         }
     }
+    private deleteModule = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.deleteModule(req.params.module_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
     private getLesson = async (req: express.Request, res: express.Response) => {
         try {
             const data = await this._worker.getLesson(req.params.lesson_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getLessons = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getLessons(req.params.module_id);
             res.json(data);
         } catch (err) {
             res.json(err);

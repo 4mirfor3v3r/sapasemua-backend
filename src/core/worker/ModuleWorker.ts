@@ -11,8 +11,12 @@ interface IModuleWorker {
     addModule(module: IModule, submodule:any, files: { [fieldname: string]: Express.Multer.File[]; } | undefined): Promise<BaseResponse<IModule>>;
     addSubModule(module: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
     getAllModule(): Promise<BaseResponse<Array<IModule>>>;
+    editSubModule(submoduleId: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
+    editModule(moduleId: string, module: IModule, image: Express.Multer.File | undefined): Promise<BaseResponse<IModule>>;
+    deleteModule(moduleId: string): Promise<BaseResponse<IModule>>;
     getOneModule(module_id: string): Promise<BaseResponse<IModule>>;
     getLesson(module_id: string): Promise<BaseResponse<ISubmodule>>;
+    getLessons(module_id: string): Promise<BaseResponse<Array<ISubmodule>>>;
     addQuiz(module: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>>;
     getQuizByModule(module: string): Promise<BaseResponse<Array<IQuiz>>>;
     getQuizQuestion(module: string): Promise<BaseResponse<Array<IQuiz>>>;
@@ -119,6 +123,34 @@ export default class ModuleWorker implements IModuleWorker{
                 });
         });
     }
+    editSubModule(submoduleId: string, submodule: ISubmodule, video: Express.Multer.File | undefined): Promise<BaseResponse<ISubmodule>> {
+        return new Promise((resolve, reject) => {
+            MSubmodule.findById(submoduleId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Submodul tidak ditemukan"))
+                }
+                if(video != null && video != undefined){
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", video).then((videoName) => {
+                        submodule.video = videoName
+                        MSubmodule.findByIdAndUpdate(submoduleId, submodule, {new:true}).then((result) =>{
+                            resolve(BaseResponse.success(result as ISubmodule))
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
+                    })
+                }else{
+                    MSubmodule.findByIdAndUpdate(submoduleId, submodule, {new:true}).then((result) =>{
+                        resolve(BaseResponse.success(result as ISubmodule))
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
+                }
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
     getOneModule(module_id: string): Promise<BaseResponse<IModule>> {
         return new Promise((resolve, reject) => {
             MModule.findOne({_id:module_id}).select("-quiz").populate("submodule", "-video").exec()
@@ -162,6 +194,70 @@ export default class ModuleWorker implements IModuleWorker{
                     console.log(err);
                     reject(BaseResponse.error(err.message));
                 });
+        });
+    }
+    getLessons(module_id: string): Promise<BaseResponse<Array<ISubmodule>>> {
+        return new Promise(async (resolve, reject) => {
+            MModule.findById(module_id).select("submodule").populate("submodule").exec()
+                .then(async (data) => {
+                    if(data == null){
+                        return reject(BaseResponse.error("Modul tidak ditemukan"))
+                    }
+                    if(data.submodule == null){
+                        return reject(BaseResponse.error("Lesson kosong"))
+                    }
+                    for(let i = 0; i < data.submodule.length; i++){
+                        await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_SUBMODULE ?? "", data.submodule[i].video ?? "").then((url) => {
+                            data.submodule![i].video = url
+                        })
+                    }
+                    resolve(BaseResponse.success(data.submodule ?? []));
+                })
+                .catch((err: Error) => {
+                    console.log(err);
+                    reject(BaseResponse.error(err.message));
+                });
+        });
+    }
+    editModule(moduleId: string, module: IModule, image: Express.Multer.File|undefined): Promise<BaseResponse<IModule>> {
+        return new Promise((resolve, reject) =>{
+            MModule.findById(moduleId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Modul tidak ditemukan"))
+                }
+                if(image != null && image != undefined){
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_MODULE ?? "", image).then((imageName) => {
+                        module.image = imageName
+                        MModule.findByIdAndUpdate(moduleId, module, {new:true}).select("-quiz -submodule").then((result) =>{
+                            resolve(BaseResponse.success(result as IModule))
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
+                    })
+                }else{
+                    MModule.findByIdAndUpdate(moduleId, module, {new:true}).select("-quiz -submodule").then((result) =>{
+                        resolve(BaseResponse.success(result as IModule))
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
+                }
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
+    deleteModule(moduleId: string): Promise<BaseResponse<IModule>> {
+        return new Promise((resolve, reject) => {
+            MModule.findByIdAndDelete(moduleId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Modul tidak ditemukan"))
+                }
+                resolve(BaseResponse.success(data));
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
         });
     }
     addQuiz(module: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>> {
