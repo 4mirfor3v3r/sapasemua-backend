@@ -12,6 +12,7 @@ interface IModuleWorker {
     addSubModule(module: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
     getAllModule(): Promise<BaseResponse<Array<IModule>>>;
     editSubModule(submoduleId: string, submodule:ISubmodule, video: Express.Multer.File|undefined): Promise<BaseResponse<ISubmodule>>;
+    deleteSubModule(submoduleId: string): Promise<BaseResponse<ISubmodule>>;
     editModule(moduleId: string, module: IModule, image: Express.Multer.File | undefined): Promise<BaseResponse<IModule>>;
     deleteModule(moduleId: string): Promise<BaseResponse<IModule>>;
     getOneModule(module_id: string): Promise<BaseResponse<IModule>>;
@@ -151,6 +152,24 @@ export default class ModuleWorker implements IModuleWorker{
             });
         });
     }
+    deleteSubModule(submoduleId: string): Promise<BaseResponse<ISubmodule>> {
+        return new Promise((resolve, reject) => {
+            MSubmodule.findByIdAndDelete(submoduleId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Submodul tidak ditemukan"))
+                }
+                MModule.findByIdAndUpdate(data.module, {$pull:{submodule: data._id}}, {new:true}).then((result) =>{
+                    resolve(BaseResponse.success(data));
+                }).catch((err:Error)=>{
+                    reject(BaseResponse.error(err.message))
+                })
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
+
     getOneModule(module_id: string): Promise<BaseResponse<IModule>> {
         return new Promise((resolve, reject) => {
             MModule.findOne({_id:module_id}).select("-quiz").populate("submodule", "-video").exec()
@@ -249,7 +268,7 @@ export default class ModuleWorker implements IModuleWorker{
     }
     deleteModule(moduleId: string): Promise<BaseResponse<IModule>> {
         return new Promise((resolve, reject) => {
-            MModule.findByIdAndDelete(moduleId).then((data) => {
+            MModule.findByIdAndDelete(moduleId).select("-quiz -submodule").then((data) => {
                 if(data == null){
                     return reject(BaseResponse.error("Modul tidak ditemukan"))
                 }

@@ -23,6 +23,7 @@ export class ModuleController implements IController{
         this.router.post(`${this.path}/:module_id/edit`, upload.single("image"), this.editModule);
         this.router.post(`${this.path}/submodule/create`, upload.single("video"), this.addSubModule);
         this.router.post(`${this.path}/submodule/:submodule_id/edit`, upload.single("video"), this.editSubModule);
+        this.router.delete(`${this.path}/submodule/:submodule_id`, this.deleteSubModule);
         this.router.get(`${this.path}/get-all`, this.getAllModule);
         this.router.get(`${this.path}/:module_id`, this.getOneModule);
         this.router.delete(`${this.path}/:module_id`, this.deleteModule);
@@ -84,6 +85,14 @@ export class ModuleController implements IController{
         }
         try {
             const data = await this._worker.editSubModule(req.params.submodule_id, submodule, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private deleteSubModule = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.deleteSubModule(req.params.submodule_id);
             res.json(data);
         } catch (err) {
             res.json(err);
