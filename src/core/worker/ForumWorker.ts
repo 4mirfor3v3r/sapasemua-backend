@@ -54,6 +54,7 @@ export default class ForumWorker implements IForumWorker {
               if (data == null) {
                 return reject(BaseResponse.error("Forum tidak ditemukan"));
               }
+              if(data.attachment && data.attachment != null){
               await this.azureUploader
                 .getFileSasUrl(
                   process.env.AZURE_STORAGE_CONTAINER_NAME_FORUM ?? "",
@@ -63,6 +64,9 @@ export default class ForumWorker implements IForumWorker {
                   data.attachment = url;
                   resolve(BaseResponse.success(data));
                 });
+              }else{
+                  resolve(BaseResponse.success(data));
+              }
             })
             .catch((err: Error) => {
               reject(BaseResponse.error(err.message));
