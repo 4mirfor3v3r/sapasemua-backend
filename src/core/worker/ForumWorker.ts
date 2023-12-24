@@ -82,6 +82,7 @@ export default class ForumWorker implements IForumWorker {
       MForum.find()
         .skip((page - 1) * pageSize)
         .limit(pageSize)
+        .sort({ createdAt: -1 })
         .populate("creator", "avatar")
         .populate("comment", "_id")
         .then((data) => {
