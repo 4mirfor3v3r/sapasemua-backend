@@ -28,6 +28,7 @@ export class AzureUploader {
         return new Promise<string>(async (resolve, reject) =>  {
             if (containerName == "" || blobName == "") {
                 reject("Empty container name or blob name")
+                return
             }
             const blobService = new BlockBlobClient(process.env.AZURE_STORAGE_CONNECTION_STRING?.toString() ?? "", containerName, blobName)
             const startDate = new Date()
