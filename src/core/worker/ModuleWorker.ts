@@ -19,6 +19,9 @@ interface IModuleWorker {
     getLesson(module_id: string): Promise<BaseResponse<ISubmodule>>;
     getLessons(module_id: string): Promise<BaseResponse<Array<ISubmodule>>>;
     addQuiz(module: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>>;
+    getOneQuiz(quizId: string): Promise<BaseResponse<IQuiz>>;
+    editQuiz(quizId: string, quiz:IQuiz, attachment: Express.Multer.File|undefined): Promise<BaseResponse<IQuiz>>;
+    deleteQuiz(quizId: string): Promise<BaseResponse<IQuiz>>;
     getQuizByModule(module: string): Promise<BaseResponse<Array<IQuiz>>>;
     getQuizQuestion(module: string): Promise<BaseResponse<Array<IQuiz>>>;
     submitQuiz(module:string, creator: string, answers:IQuiz[]): Promise<BaseResponse<IQuizResult>>;
@@ -302,6 +305,69 @@ export default class ModuleWorker implements IModuleWorker{
                 } else {
                     reject(BaseResponse.error("Modul tidak ditemukan"))
                 }
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
+    getOneQuiz(quizId: string): Promise<BaseResponse<IQuiz>> {
+        return new Promise((resolve, reject) => {
+            MQuiz.findById(quizId).exec()
+                .then((data) => {
+                    if(data == null){
+                        return reject(BaseResponse.error("Quiz tidak ditemukan"))
+                    }
+                    this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_QUIZ ?? "", data.attachment ?? "").then((url) => {
+                        data.attachment = url
+                        resolve(BaseResponse.success(data));
+                    })
+                })
+                .catch((err: Error) => {
+                    console.log(err);
+                    reject(BaseResponse.error(err.message));
+                });
+            });
+    }
+    editQuiz(quizId: string, quiz: IQuiz, attachment: Express.Multer.File | undefined): Promise<BaseResponse<IQuiz>> {
+        return new Promise((resolve, reject) => {
+            MQuiz.findById(quizId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Quiz tidak ditemukan"))
+                }
+                if(attachment != null && attachment != undefined){
+                    this.azureUploader.upload(process.env.AZURE_STORAGE_CONTAINER_NAME_QUIZ ?? "", attachment).then((attachmentName) => {
+                        quiz.attachment = attachmentName
+                        MQuiz.findByIdAndUpdate(quizId, quiz, {new:true}).then((result) =>{
+                            resolve(BaseResponse.success(result as IQuiz))
+                        }).catch((err:Error)=>{
+                            reject(BaseResponse.error(err.message))
+                        })
+                    })
+                }else{
+                    MQuiz.findByIdAndUpdate(quizId, quiz, {new:true}).then((result) =>{
+                        resolve(BaseResponse.success(result as IQuiz))
+                    }).catch((err:Error)=>{
+                        reject(BaseResponse.error(err.message))
+                    })
+                }
+            }).catch((err: Error) => {
+                console.log(err);
+                reject(BaseResponse.error(err.message));
+            });
+        });
+    }
+    deleteQuiz(quizId: string): Promise<BaseResponse<IQuiz>> {
+        return new Promise((resolve, reject) => {
+            MQuiz.findByIdAndDelete(quizId).then((data) => {
+                if(data == null){
+                    return reject(BaseResponse.error("Quiz tidak ditemukan"))
+                }
+                MModule.findByIdAndUpdate(data.module, {$pull:{quiz: data._id}}, {new:true}).then((result) =>{
+                    resolve(BaseResponse.success(data));
+                }).catch((err:Error)=>{
+                    reject(BaseResponse.error(err.message))
+                })
             }).catch((err: Error) => {
                 console.log(err);
                 reject(BaseResponse.error(err.message));

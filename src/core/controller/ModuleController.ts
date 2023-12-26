@@ -32,6 +32,9 @@ export class ModuleController implements IController{
         this.router.get(`${this.path}/lesson/:lesson_id`, this.getLesson);
         this.router.get(`${this.path}/:module_id/submodule`, this.getLessons);
         this.router.post(`${this.path}/quiz/create`, upload.single("attachment"), this.addQuiz);
+        this.router.get(`${this.path}/quiz/:quiz_id`, this.getOneQuiz);
+        this.router.post(`${this.path}/quiz/:quiz_id/edit`, upload.single("attachment"), this.editQuiz);
+        this.router.delete(`${this.path}/quiz/:quiz_id`, this.deleteQuiz);
         this.router.post(`${this.path}/quiz/submit`, this.submitQuiz);
         this.router.get(`${this.path}/quiz/:user_id/result`, this.getQuizResultByUser);
         this.router.get(`${this.path}/quiz/result/:result_id`, this.getQuizResultById);
@@ -150,6 +153,39 @@ export class ModuleController implements IController{
         }
         try {
             const data = await this._worker.addQuiz(req.body.module, quiz, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private getOneQuiz = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.getOneQuiz(req.params.quiz_id);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private editQuiz = async (req: express.Request, res: express.Response) => {
+        var quiz: IQuiz = {
+            module : req.body.module,
+            question : req.body.question,
+            answer : req.body.answer,
+            option1 : req.body.option1,
+            option2 : req.body.option2,
+            option3 : req.body.option3,
+            option4 : req.body.option4
+        }
+        try {
+            const data = await this._worker.editQuiz(req.params.quiz_id, quiz, req.file);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+    private deleteQuiz = async (req: express.Request, res: express.Response) => {
+        try {
+            const data = await this._worker.deleteQuiz(req.params.quiz_id);
             res.json(data);
         } catch (err) {
             res.json(err);
