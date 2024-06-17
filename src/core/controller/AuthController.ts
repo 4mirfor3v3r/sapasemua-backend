@@ -19,6 +19,7 @@ export class AuthController implements IController{
 		this.router.post(`${this.path}/login`, this.login);
         this.router.post(`${this.path}/register`, this.register);
         this.router.get(`${this.path}/:user_id`, this.me);
+        this.router.get(`${this.path}/:user_id/dashboard`, this.dashboard);
         this.router.post(`${this.path}/update`, upload.single("avatar"), this.updateProfile);
     }
 
@@ -61,6 +62,16 @@ export class AuthController implements IController{
             res.json(err);
         }
     }
+    private dashboard = async (req: express.Request, res: express.Response) =>{
+        var user = req.params.user_id;
+        try {
+            const data = await this._worker.dashboard(user);
+            res.json(data);
+        } catch (err) {
+            res.json(err);
+        }
+    }
+
     private updateProfile = async (req: express.Request, res: express.Response) =>{
         var user = {
             name: req.body.name,

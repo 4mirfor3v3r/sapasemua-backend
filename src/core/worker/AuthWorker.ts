@@ -2,6 +2,8 @@ import { AzureUploader } from './../util/AzureUploader';
 import { BaseResponse } from './../util/BaseResponse';
 import { IUser, MUser } from './../model/User';
 import { compareSync, hash } from 'bcrypt';
+import { MComment } from './../model/Comment';
+import { MForum } from './../model/Forum';
 
 interface IAuthWorker {
 	ping(): string;
@@ -107,5 +109,33 @@ export class AuthWorker implements IAuthWorker {
 					});
 		});
     }
+
+	dashboard(user: string):Promise<BaseResponse<any>>{
+		return new Promise((resolve, reject) => {
+			MUser.findById(user).then((result) => {
+					if (result) {
+						MComment.count({ creator: user }).then((commentCount) => {
+							MForum.count({ creator: user }).then((postCount) => {
+								resolve(BaseResponse.success({
+									user: result,
+									totalComment: commentCount,
+									totalPost: postCount
+								}));
+							}).catch((err: Error) => {
+								reject(BaseResponse.error(err.message));
+							})
+						}).catch((err: Error) => {
+							reject(BaseResponse.error(err.message));
+						})
+					} else {
+						reject(BaseResponse.error('User not found'));
+					}
+				})
+				.catch((err: Error) => {
+					console.log(err);
+					reject(BaseResponse.error(err.message));
+				});
+		})
+	}
 
 }
