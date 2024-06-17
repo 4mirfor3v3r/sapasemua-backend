@@ -112,21 +112,41 @@ export class AuthWorker implements IAuthWorker {
 
 	dashboard(user: string):Promise<BaseResponse<any>>{
 		return new Promise((resolve, reject) => {
-			MUser.findById(user).then((result) => {
+			MUser.findById(user).then(async (result) => {
 					if (result) {
-						MComment.count({ creator: user }).then((commentCount) => {
-							MForum.count({ creator: user }).then((postCount) => {
-								resolve(BaseResponse.success({
-									user: result,
-									totalComment: commentCount,
-									totalPost: postCount
-								}));
+						if(result.avatar!=undefined){
+							await this.azureUploader.getFileSasUrl(process.env.AZURE_STORAGE_CONTAINER_NAME_USER ??"", result.avatar).then((avatarUrl) => {
+								result.avatar = avatarUrl
+
+								MComment.count({ creator: user }).then((commentCount) => {
+									MForum.count({ creator: user }).then((postCount) => {
+										resolve(BaseResponse.success({
+											user: result,
+											totalComment: commentCount,
+											totalPost: postCount
+										}));
+									}).catch((err: Error) => {
+										reject(BaseResponse.error(err.message));
+									})
+								}).catch((err: Error) => {
+									reject(BaseResponse.error(err.message));
+								})
+							})
+						}else{
+							MComment.count({ creator: user }).then((commentCount) => {
+								MForum.count({ creator: user }).then((postCount) => {
+									resolve(BaseResponse.success({
+										user: result,
+										totalComment: commentCount,
+										totalPost: postCount
+									}));
+								}).catch((err: Error) => {
+									reject(BaseResponse.error(err.message));
+								})
 							}).catch((err: Error) => {
 								reject(BaseResponse.error(err.message));
 							})
-						}).catch((err: Error) => {
-							reject(BaseResponse.error(err.message));
-						})
+						}	
 					} else {
 						reject(BaseResponse.error('User not found'));
 					}
